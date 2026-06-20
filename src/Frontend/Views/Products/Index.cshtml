@@ -1,0 +1,47 @@
+@model List<Frontend.Models.ViewModels.ProductViewModel>
+@{
+    ViewData["Title"] = "Products";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Product Catalog</h2>
+    @if (Context.Session.GetString("jwt_token") != null)
+    {
+        <a asp-controller="Orders" asp-action="Place" class="btn btn-success">Place an Order</a>
+    }
+    else
+    {
+        <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary">Login to Order</a>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No products found. Seed data will load on first startup.</div>
+}
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    @foreach (var product in Model)
+    {
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <span class="badge bg-secondary mb-2">@product.Category</span>
+                    <h5 class="card-title">@product.Name</h5>
+                    <p class="card-text text-muted small">@product.Description</p>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <span class="fs-5 fw-bold text-success">@product.Price.ToString("C")</span>
+                    <span class="text-muted small">Stock: @product.StockQuantity</span>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="mt-5 p-3 bg-light rounded small text-muted">
+    <strong>How this works:</strong>
+    This page calls <code>GET /api/products</code> through the API Gateway (YARP),
+    which proxies to <strong>ProductService</strong> running on its own port with its own SQL Server database.
+    No login required — product reads are public.
+</div>

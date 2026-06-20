@@ -1,0 +1,68 @@
+@model List<Frontend.Models.ViewModels.OrderViewModel>
+@{
+    ViewData["Title"] = "My Orders";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>My Orders</h2>
+    <a asp-action="Place" class="btn btn-success">Place New Order</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        You haven't placed any orders yet.
+        <a asp-action="Place">Place your first order!</a>
+    </div>
+}
+
+@foreach (var order in Model)
+{
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header d-flex justify-content-between">
+            <span class="fw-bold">Order #@order.Id.ToString()[..8]...</span>
+            <span>
+                <span class="badge bg-primary">@order.Status</span>
+                &mdash;
+                <span class="text-muted">@order.CreatedAt.ToLocalTime().ToString("g")</span>
+            </span>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th class="text-end">Unit Price</th>
+                        <th class="text-end">Line Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in order.Items)
+                    {
+                        <tr>
+                            <td>@item.ProductName</td>
+                            <td>@item.Quantity</td>
+                            <td class="text-end">@item.UnitPrice.ToString("C")</td>
+                            <td class="text-end">@((item.UnitPrice * item.Quantity).ToString("C"))</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="3" class="text-end">Total</td>
+                        <td class="text-end">@order.TotalAmount.ToString("C")</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="mt-4 p-3 bg-light rounded small text-muted">
+    <strong>How this works:</strong>
+    Orders are fetched from <strong>OrderService</strong> via the API Gateway.
+    When you place an order, OrderService saves it to <code>OrderServiceDb</code>,
+    then publishes an <code>OrderPlacedEvent</code> to RabbitMQ.
+    Watch the <strong>NotificationService</strong> logs to see the async email simulation!
+</div>

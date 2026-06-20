@@ -1,0 +1,159 @@
+services:
+
+  # ─────────────────────────────────────────────────────
+  # Infrastructure
+  # ─────────────────────────────────────────────────────
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: demo-sqlserver
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD}
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${SA_PASSWORD}' -Q 'SELECT 1' -C -N"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: demo-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "5672:5672"    # AMQP protocol
+      - "15672:15672"  # Management UI → http://localhost:15672
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ─────────────────────────────────────────────────────
+  # Backend Microservices
+  # ─────────────────────────────────────────────────────
+
+  userservice:
+    build:
+      context: .
+      dockerfile: src/UserService/Dockerfile
+    container_name: demo-userservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=UserServiceDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: MicroServiceDemo
+      Jwt__Audience: MicroServiceDemo
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+  productservice:
+    build:
+      context: .
+      dockerfile: src/ProductService/Dockerfile
+    container_name: demo-productservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=ProductServiceDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: MicroServiceDemo
+      Jwt__Audience: MicroServiceDemo
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+  orderservice:
+    build:
+      context: .
+      dockerfile: src/OrderService/Dockerfile
+    container_name: demo-orderservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=OrderServiceDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: MicroServiceDemo
+      Jwt__Audience: MicroServiceDemo
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Username: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASS}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  notificationservice:
+    build:
+      context: .
+      dockerfile: src/NotificationService/Dockerfile
+    container_name: demo-notificationservice
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Username: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASS}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────────────
+  # API Gateway
+  # ─────────────────────────────────────────────────────
+
+  apigateway:
+    build:
+      context: .
+      dockerfile: src/ApiGateway/Dockerfile
+    container_name: demo-apigateway
+    ports:
+      - "5000:8080"    # http://localhost:5000
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: MicroServiceDemo
+      Jwt__Audience: MicroServiceDemo
+      Cors__AllowedOrigin: http://localhost:3000
+      ReverseProxy__Clusters__users-cluster__Destinations__destination1__Address: http://userservice:8080
+      ReverseProxy__Clusters__products-cluster__Destinations__destination1__Address: http://productservice:8080
+      ReverseProxy__Clusters__orders-cluster__Destinations__destination1__Address: http://orderservice:8080
+    depends_on:
+      - userservice
+      - productservice
+      - orderservice
+
+  # ─────────────────────────────────────────────────────
+  # MVC Frontend
+  # ─────────────────────────────────────────────────────
+
+  frontend:
+    build:
+      context: .
+      dockerfile: src/Frontend/Dockerfile
+    container_name: demo-frontend
+    ports:
+      - "3000:8080"    # http://localhost:3000
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ApiGateway__BaseUrl: http://apigateway:8080
+    depends_on:
+      - apigateway
+
+volumes:
+  sqlserver-data:
+  rabbitmq-data:

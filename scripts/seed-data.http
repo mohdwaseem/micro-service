@@ -1,0 +1,82 @@
+# MicroServiceDemo — Manual API Test Requests
+# Use with VS Code REST Client extension or JetBrains HTTP Client
+# Run all requests against the API Gateway on :5000
+
+@gateway = http://localhost:5000
+@token = {{login.response.body.token}}
+
+# ─────────────────────────────────────────────────────
+# 1. Register a new user
+# ─────────────────────────────────────────────────────
+
+POST {{gateway}}/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Alice",
+  "lastName": "Smith",
+  "email": "alice@example.com",
+  "password": "Password123!"
+}
+
+###
+
+# ─────────────────────────────────────────────────────
+# 2. Login and capture token
+# ─────────────────────────────────────────────────────
+
+# @name login
+POST {{gateway}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "Password123!"
+}
+
+###
+
+# ─────────────────────────────────────────────────────
+# 3. Get all products (no auth required)
+# ─────────────────────────────────────────────────────
+
+GET {{gateway}}/api/products
+
+###
+
+# ─────────────────────────────────────────────────────
+# 4. Place an order (requires auth)
+# Replace ProductId values with real IDs from step 3
+# ─────────────────────────────────────────────────────
+
+POST {{gateway}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "items": [
+    {
+      "productId": "00000000-0000-0000-0000-000000000001",
+      "productName": "Laptop Pro 15",
+      "quantity": 1,
+      "unitPrice": 1299.99
+    }
+  ]
+}
+
+###
+
+# ─────────────────────────────────────────────────────
+# 5. Get my orders
+# ─────────────────────────────────────────────────────
+
+GET {{gateway}}/api/orders
+Authorization: Bearer {{token}}
+
+###
+
+# ─────────────────────────────────────────────────────
+# 6. Try accessing orders without auth (expect 401)
+# ─────────────────────────────────────────────────────
+
+GET {{gateway}}/api/orders
