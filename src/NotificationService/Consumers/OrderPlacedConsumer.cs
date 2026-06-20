@@ -19,6 +19,8 @@ public class OrderPlacedConsumer(ILogger<OrderPlacedConsumer> logger) : IConsume
     {
         var evt = context.Message;
 
+        throw new Exception("Simulated exception in OrderPlacedConsumer. This will trigger a retry and eventually send the message to the dead-letter queue.");
+
         logger.LogInformation(
             "====================================================");
         logger.LogInformation(
