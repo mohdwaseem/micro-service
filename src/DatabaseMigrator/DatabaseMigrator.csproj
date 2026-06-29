@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>DatabaseMigrator</RootNamespace>
+    <AssemblyName>DatabaseMigrator</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- DbUp SQL Server provider (brings in dbup-core transitively) -->
+    <PackageReference Include="dbup-sqlserver" Version="5.0.7" />
+  </ItemGroup>
+
+  <!-- Embed all SQL scripts into the assembly so the migrator is a single self-contained binary -->
+  <ItemGroup>
+    <EmbeddedResource Include="Scripts/**/*.sql" />
+  </ItemGroup>
+
+</Project>

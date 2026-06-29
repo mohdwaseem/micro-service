@@ -43,9 +43,11 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 // === Database Migration ===
-// Automatically creates UserServiceDb and applies migrations on startup.
-using (var scope = app.Services.CreateScope())
+// Development: EF Core handles schema creation for a smooth local dev experience.
+// Production/CI: DbUp migrator runs before the container starts (see Jenkinsfile DB Migrate stage).
+if (app.Environment.IsDevelopment())
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
     db.Database.Migrate();
 }
@@ -65,3 +67,6 @@ app.UseAuthorization();
 AuthEndpoints.Map(app);
 
 app.Run();
+
+// Enables WebApplicationFactory<Program> in integration tests
+public partial class Program { }

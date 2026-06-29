@@ -1,0 +1,27 @@
+# Jenkins plugins — installed at image build time via jenkins-plugin-cli
+# Format: plugin-id:version  (use "latest" to always pull newest stable)
+#
+# Core pipeline
+workflow-aggregator:latest
+pipeline-stage-view:latest
+pipeline-utility-steps:latest
+
+# Source control
+git:latest
+gitea:latest
+
+# Test result publishing
+junit:latest
+
+# Credentials management
+credentials:latest
+credentials-binding:latest
+
+# Notifications
+email-ext:latest
+mailer:latest
+
+# UX improvements
+timestamper:latest
+ws-cleanup:latest
+ansicolor:latest

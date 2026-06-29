@@ -1,11 +1,18 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ApiGateway/ApiGateway.csproj" />
+    <Project Path="src/DatabaseMigrator/DatabaseMigrator.csproj" />
     <Project Path="src/Frontend/Frontend.csproj" />
     <Project Path="src/NotificationService/NotificationService.csproj" />
     <Project Path="src/OrderService/OrderService.csproj" />
     <Project Path="src/ProductService/ProductService.csproj" />
     <Project Path="src/SharedKernel/SharedKernel.csproj" />
     <Project Path="src/UserService/UserService.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/E2E.Tests/E2E.Tests.csproj" />
+    <Project Path="tests/OrderService.Tests/OrderService.Tests.csproj" />
+    <Project Path="tests/ProductService.Tests/ProductService.Tests.csproj" />
+    <Project Path="tests/UserService.Tests/UserService.Tests.csproj" />
   </Folder>
 </Solution>

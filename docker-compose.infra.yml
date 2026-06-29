@@ -1,0 +1,81 @@
+# CI/CD Infrastructure — Gitea (local Git server) + Jenkins (CI orchestrator)
+#
+# Run:  docker compose -f docker-compose.infra.yml up -d
+# Stop: docker compose -f docker-compose.infra.yml down
+#
+# UIs after first start:
+#   Gitea:   http://localhost:3001  — complete the setup wizard on first visit
+#   Jenkins: http://localhost:8090  — retrieve initial admin password with:
+#              docker logs demo-jenkins 2>&1 | grep -A2 "initialAdminPassword"
+#            or: docker exec demo-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
+services:
+
+  # ─────────────────────────────────────────────────────
+  # Gitea — self-hosted Git server
+  # ─────────────────────────────────────────────────────
+  gitea:
+    image: gitea/gitea:1.22
+    container_name: demo-gitea
+    restart: unless-stopped
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      GITEA__server__DOMAIN: localhost
+      GITEA__server__HTTP_PORT: "3000"
+      GITEA__server__ROOT_URL: http://localhost:3001/
+      GITEA__server__SSH_DOMAIN: localhost
+      GITEA__server__SSH_PORT: "2222"
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__log__LEVEL: warn
+      GITEA__security__INSTALL_LOCK: "false"
+    ports:
+      - "3001:3000"   # Web UI → http://localhost:3001
+      - "2222:22"     # SSH git
+    volumes:
+      - gitea-data:/data
+    networks:
+      - cicd-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ─────────────────────────────────────────────────────
+  # Jenkins — CI orchestrator
+  # ─────────────────────────────────────────────────────
+  jenkins:
+    build:
+      context: jenkins
+      dockerfile: Dockerfile
+    container_name: demo-jenkins
+    restart: unless-stopped
+    environment:
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=true -Xmx1g"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    ports:
+      - "8090:8080"     # Web UI → http://localhost:8090
+      - "50000:50000"   # Jenkins agent JNLP port
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      # Mount the host Docker socket so Jenkins can run docker compose
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - cicd-net
+    depends_on:
+      gitea:
+        condition: service_healthy
+
+networks:
+  cicd-net:
+    name: demo-cicd-network
+    driver: bridge
+
+volumes:
+  gitea-data:
+    name: demo-gitea-data
+  jenkins-data:
+    name: demo-jenkins-data

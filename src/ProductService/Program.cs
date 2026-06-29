@@ -42,8 +42,11 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 // === Database Migration + Seed ===
-using (var scope = app.Services.CreateScope())
+// Development: EF Core handles schema creation for a smooth local dev experience.
+// Production/CI: DbUp migrator runs before the container starts (see Jenkinsfile DB Migrate stage).
+if (app.Environment.IsDevelopment())
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
     db.Database.Migrate();
     await SeedData.SeedAsync(db);
@@ -64,3 +67,6 @@ app.UseAuthorization();
 ProductEndpoints.Map(app);
 
 app.Run();
+
+// Enables WebApplicationFactory<Program> in integration tests
+public partial class Program { }
